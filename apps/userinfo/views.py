@@ -80,6 +80,7 @@ def login(request):
 @csrf_exempt
 @login_required
 def logout(request):
+    log.debug('user: {}'.format(request.user))
     auth_logout(request)
     return http_response_return('logout')
 
@@ -159,18 +160,6 @@ def activate(request, code):
 
 
 
-class ResetPassView(View):
-    pass
-
-
-class UpdateImageView(View):
-    pass
-
-
-class ForgetPass(View):
-    pass
-
-
 def forget_pwd(request):
     pass
 
@@ -179,8 +168,52 @@ def update_image(request):
     pass
 
 
+@csrf_exempt
+@login_required
 def reset_pass(request):
-    pass
+    print(request.user)
+    if request.method == 'POST':
+        user = request.user
+        old_pass = request.POST.get('old_password', '')
+        new_pass = request.POST.get('new_password', '')
+        res_pass = request.POST.get('res_password', '')
+        log.debug("pass: {}, new_pass: {}, res_pass: {}".format(old_pass, new_pass, res_pass))
+        if old_pass is '' or new_pass is '' or res_pass is '':
+            res = {'code': 'C00003', 'msg': resp_code.get('C00003')}
+            return http_response_return(res)
+        if not user.check_password(old_pass):
+            res = {'code': 'C10007', 'msg': resp_code.get('C10007')}
+        elif not validate_pass_len(new_pass):
+            res = {'code': 'C10005', 'msg': resp_code.get('C10005')}
+        elif not new_pass == res_pass:
+            res = {'code': 'C10008', 'msg': resp_code.get('C10008')}
+        else:
+            try:
+                user.set_password(new_pass)
+                user.save()
+                res = {'code': 'C00000', 'msg': '密码修改成功'}
+            except Exception as e:
+                log.error('Error: {}, {}'.format(traceback.format_exc(), e))
+                res = {'code': 'C10009', 'msg': resp_code.get('C10009')}
+        return http_response_return(res)
+
+    else:
+        http_response_return('reset password is get requist!')
+
+
+@csrf_exempt
+@login_required
+def center(request):
+    if request.method == 'GET':
+        user = request.user
+        li = UserProfile.objects.filter(username=user)
+        if li:
+            res = {'code': 'C00000', 'msg': resp_code.get('C00000'), 'data': li}
+        elif li is False:
+            res = {'code': 'C00001', 'msg': resp_code.get('C00001'), 'data': []}
+        else:
+            res = {'code': 'C00002', 'msg': resp_code.get('C00002'), 'data': []}
+        http_response_return(res)
 
 
 

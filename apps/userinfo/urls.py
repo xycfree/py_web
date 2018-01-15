@@ -16,6 +16,8 @@ urlpatterns = [
     url(r'^register/$', userinfo_views.register, name='register'),
     url(r'^password/$', userinfo_views.reset_pass, name='password'),
     url(r'^forgetpass/$', userinfo_views.forget_pwd, name='forget_pwd'),
+    url(r'^center/$', userinfo_views.center, name='center'),
+
 
     url(r'updateimage/$', userinfo_views.update_image, name='updateimage'),
     url(r'^active/(?P<code>.*)/$', userinfo_views.activate, name="user_active"),  # 提取出active后的所有字符赋给active_code
