@@ -9,6 +9,7 @@ import traceback
 from django.contrib.auth.backends import ModelBackend
 from django.contrib.auth.hashers import make_password
 from django.db.models import Q
+from django.forms import model_to_dict
 from django.shortcuts import render, HttpResponse
 from django.http import HttpResponsePermanentRedirect
 from django.contrib.auth import login as auth_login, logout as auth_logout, authenticate
@@ -19,6 +20,7 @@ from django.views.decorators.csrf import csrf_protect, csrf_exempt
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 
+from common.mixin_utils import LoginRequiredMixin
 from common.send_email import send_register_email, Token
 from userinfo.models import UserProfile, EmailVerifyRecord
 from common.conf import resp_code
@@ -28,6 +30,7 @@ from py_web.settings import SECRET_KEY
 logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger(__file__)
 token_confirm = Token(SECRET_KEY)
+
 
 # 让用户可以用邮箱登录
 # setting 里要有对应的配置
@@ -50,6 +53,7 @@ def index(request):
 
 @csrf_exempt
 def login(request):
+    """ 登录 """
     if request.method == 'GET':
         return HttpResponse('login is get request')
 
@@ -87,6 +91,7 @@ def logout(request):
 
 @csrf_exempt
 def register(request):
+    """ 用户注册 """
     if request.method == 'GET':
         return http_response_return("register is get request!")
     elif request.method == 'POST':
@@ -104,10 +109,14 @@ def register(request):
         if UserProfile.objects.filter(email=email):
             res = {'code': 'C10003', 'msg': resp_code.get('C10003')}
             return http_response_return(res)
-
-        user = UserProfile.objects.create(username=email, password=password, email=email, is_active=False)
-        user.set_password(password)  # make_password(password)
-        user.save()
+        try:
+            user = UserProfile.objects.create(username=email, password=password, email=email, is_active=False)
+            user.set_password(password)  # make_password(password)
+            user.save()
+        except Exception as e:
+            log.error("Error: {}, {}".format(traceback.format_exc(), e))
+            res = {'code': 'C10011', 'msg': resp_code.get('C10011')}
+            return http_response_return(res)
 
         # 注册成功,发送邮件
         try:
@@ -122,6 +131,7 @@ def register(request):
 
 
 def activate(request, code):
+    """ 用户激活 """
     if request.method == 'GET':
         # 用code在数据库中过滤处信息
         # all_records = EmailVerifyRecord.objects.filter(code=code)
@@ -158,25 +168,88 @@ def activate(request, code):
         return http_response_return('post is request')
 
 
-
-
 def forget_pwd(request):
-    pass
+    """ 忘记密码页面，发送邮件 """
+    if request.method == 'POST':
+        email = request.POST.get('email', '')
+        if email is '':
+            res = {'code': 'C00003', 'msg': resp_code.get('C00003')}
+            return http_response_return(res)
+        if not validate_email(email):
+            res = {'code': 'C10004', 'msg': resp_code.get('C10004')}
+            return http_response_return(res)
+        res = send_register_email(email, send_type='forget')
+        if res:
+            res = {'code': 'C00000', 'msg': '邮件发送成功'}
+        else:
+            res = {'code': 'C10010', 'msg': resp_code.get('C10010')}
+        return http_response_return(res)
+    else:
+        return http_response_return("forget password is get requist")
 
 
-def update_image(request):
-    pass
+def reset_page(request, code):
+    """ 用户进入到重置密码页面 """
+    #  如果第二次进来，链接就失效, 该功能没有实现, 需优化
+    if request.method == 'GET':
+        all_records = EmailVerifyRecord.objects.filter(code=code)
+        if all_records:
+            for r in all_records:
+                email = r.email
+                res = {'code': 'C00000', 'msg': resp_code.get('C00000'), 'data': {'email': email, 'code': code}}
+                return http_response_return(res)
+        res = {'code': 'C10012', 'msg': resp_code.get('C10012'), 'data': {'email': ''}}
+        return http_response_return(res)
+    else:
+        return http_response_return('reset pwd is post requist')
+
+
+def reset_pwd(request):
+    """ 用户重置密码 """
+    if request.method == 'POST':
+        email = request.POST.get('email', '')
+        code = request.POST.get('code', '')
+        pwd = request.POST.get('new_pass', '')
+        re_pwd = request.POST.get('res_pass', '')
+        if email is '' or pwd is '' or re_pwd is '' or code is '':
+            res = {'code': 'C00003', 'msg': resp_code.get('C00003')}
+            return http_response_return(res)
+        try:
+            _email = EmailVerifyRecord.objects.get(code=code).__dict__.get('email', '')
+            if email != _email:
+                res = {'code': 'C10014', 'msg': resp_code.get('C10014')}
+                return http_response_return(res)
+        except Exception as e:
+            log.error("Error: {}, {}".format(traceback.format_exc(), e))
+            res = {'code': 'C10013', 'msg': resp_code.get('C10013')}
+            return http_response_return(res)
+
+        if not validate_pass_len(pwd):
+            res = {'code': 'C10005', 'msg': resp_code.get('C10005')}
+        elif pwd != re_pwd:
+            res = {'code': 'C10008', 'msg': resp_code.get('C10008')}
+        else:
+            try:
+                user = UserProfile.objects.get(email=email)
+                user.password = make_password(pwd)
+                user.save()
+                res = {'code': 'C00000', 'msg': resp_code.get('C00000')}
+            except Exception as e:
+                log.error("Error: {}, {}".format(traceback.format_exc(), e))
+                res = {'code': 'C10009', 'msg': resp_code.get('C10009')}
+        return http_response_return(res)
 
 
 @csrf_exempt
 @login_required
-def reset_pass(request):
+def modify_pwd(request):
+    """ 用户修改密码 """
     print(request.user)
     if request.method == 'POST':
         user = request.user
-        old_pass = request.POST.get('old_password', '')
-        new_pass = request.POST.get('new_password', '')
-        res_pass = request.POST.get('res_password', '')
+        old_pass = request.POST.get('old_pass', '')
+        new_pass = request.POST.get('new_pass', '')
+        res_pass = request.POST.get('res_pass', '')
         log.debug("pass: {}, new_pass: {}, res_pass: {}".format(old_pass, new_pass, res_pass))
         if old_pass is '' or new_pass is '' or res_pass is '':
             res = {'code': 'C00003', 'msg': resp_code.get('C00003')}
@@ -204,16 +277,65 @@ def reset_pass(request):
 @csrf_exempt
 @login_required
 def center(request):
+    """个人中心 """
     if request.method == 'GET':
         user = request.user
-        li = UserProfile.objects.filter(username=user)
-        if li:
-            res = {'code': 'C00000', 'msg': resp_code.get('C00000'), 'data': li}
-        elif li is False:
-            res = {'code': 'C00001', 'msg': resp_code.get('C00001'), 'data': []}
-        else:
-            res = {'code': 'C00002', 'msg': resp_code.get('C00002'), 'data': []}
-        http_response_return(res)
+        try:
+            users = UserProfile.objects.get(username=user)
+            log.debug('user info: {}'.format(users.__dict__))
+            data = {'username': users.__dict__.get('username', ''), 'email': users.__dict__.get('email', ''),
+                    'address': users.__dict__.get('address', ''), 'nickname': users.__dict__.get('nickname', ''),
+                    'phone': users.__dict__.get('phone', '')}
+            res = {'code': 'C00000', 'msg': resp_code.get('C00000'), 'data': data}  # users.__dict__
+        except Exception as e:
+            log.error("Error: {}, {}".format(traceback.format_exc(), e))
+            res = {'code': 'C00002', 'msg': resp_code.get('C00002'), 'data': {}}
+        return http_response_return(res)
+    else:
+        return http_response_return("center is post requist")
 
 
+@csrf_exempt
+@login_required
+def modify_user_info(request):
+    """ 用户信息修改 """
 
+    if request.method == 'POST':
+        try:
+            _di = dict(request.POST.items())  # query_set to dict
+            log.debug('_di: {}'.format(_di))
+            UserProfile.objects.filter(username=request.user).update(**_di)  # 字典更新, 不需要save
+            res = {'code': 'C00000', 'msg': resp_code.get('C00000')}
+        except Exception as e:
+            log.error("Error: {}, {}".format(traceback.format_exc(), e))
+            res = {'code': 'C00001', 'msg': resp_code.get('C00001')}
+        return http_response_return(res)
+    else:
+        return http_response_return("modify user info is get requist")
+
+
+@csrf_exempt
+@login_required
+def update_image(request):
+    """ 更新头像 """
+    if request.method == 'POST':
+        image = request.POST.get('image', '')
+        if image is '':
+            res = {'code': 'C00003', 'msg': resp_code.get('C00003')}
+            return http_response_return(res)
+        try:
+            user = UserProfile.objects.get(username=request.user)
+            user.image = image
+            user.save()
+            res = {'code': 'C00000', 'msg': '头像修改成功'}
+        except Exception as e:
+            log.error("Error: {}, {}".format(traceback.format_exc(), e))
+            res = {'code': 'C00001', 'msg': '头像修改失败'}
+        return http_response_return(res)
+
+    else:
+        return http_response_return('modify image is get requist')
+
+
+class UserInfoView(LoginRequiredMixin, View):
+    pass

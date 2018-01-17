@@ -35,7 +35,7 @@ ALLOWED_HOSTS = []
 AUTHENTICATION_BACKENDS = ('userinfo.views.CustomBackend',)
 
 # UserProfile 覆盖了 django 内置的 user 表
-AUTH_USER_MODEL = 'userinfo.UserProfile'
+AUTH_USER_MODEL = 'userinfo.UserProfile'  # 自定义AbstractUser来实现登录认证
 
 # Application definition
 
@@ -51,6 +51,8 @@ INSTALLED_APPS = [
     'crispy_forms',
     'captcha',
     'pure_pagination',
+    'rest_framework',
+    'snippets',
 ]
 
 MIDDLEWARE = [
@@ -64,7 +66,7 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'py_web.urls'
-LOGIN_URL = 'login/'  # 这个路径需要根据你网站的实际登陆地址来设置
+LOGIN_URL = '/login/'  # 这个路径需要根据你网站的实际登陆地址来设置
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',

@@ -50,7 +50,7 @@ class UserProfile(AbstractUser):
     password = models.CharField(max_length=128, verbose_name=u'密码')
     profile = models.TextField(max_length=200, verbose_name=u'简介', blank=True, null=True)
     address = models.CharField(max_length=255, verbose_name='地址')
-    phone = models.CharField(max_length=11, verbose_name='手机号')
+    phone = models.CharField(max_length=36, verbose_name='手机号')
     nickname = models.CharField(max_length=64, verbose_name='真实姓名')
     image = models.ImageField(max_length=200, upload_to='user_images/%Y/%m/%d', default='default.png',
                               verbose_name=u'用户头像')

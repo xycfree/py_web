@@ -26,7 +26,7 @@ from userinfo import urls as userinfo_urls
 
 admin.autodiscover()
 urlpatterns = [
-
+    url(r'', include('snippets.urls', namespace='snippets')),
     url(r'^admin/', xadmin.site.urls),
     url(r'', include('userinfo.urls', namespace='userinfo')),
     # url(r'^', include(userinfo_urls, namespace='userinfo')),

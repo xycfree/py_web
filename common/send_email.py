@@ -23,6 +23,11 @@ log = logging.getLogger(__file__)
 
 
 def send_register_email(email, send_type='register'):
+    """ 发送邮件
+    :param email: email
+    :param send_type: register: 注册, forget: 忘记密码
+    :return:
+    """
     email_record = EmailVerifyRecord()
     # code = random_str(16)
     code = Token().generate_validate_token(email)
@@ -34,11 +39,11 @@ def send_register_email(email, send_type='register'):
     email_record.save()
 
     # http://118.89.105.65 是我自己的服务器 IP 地址，你部署的时候，请换成你自己的 IP 或 域名
-    _ip = "http://127.0.0.1:8003/"
+    _ip = "http://127.0.0.1:8003"
 
     if send_type == 'register':
         email_title = '注册激活链接'
-        email_body = '请点击下面的链接激活你的账号：{}active/{}, 链接有效时间为24小时'.format(_ip, code)
+        email_body = '请点击下面的链接激活你的账号：{}/active/{}, 链接有效时间为24小时'.format(_ip, code)
         send_status = send_mail(email_title, email_body, EMAIL_FROM, [email])
         log.debug('send_status: {}'.format(send_status))
         if send_status:
@@ -50,7 +55,7 @@ def send_register_email(email, send_type='register'):
 
     elif send_type == 'forget':
         email_title = '密码重置链接'
-        email_body = '请点击下面的链接重置你的密码：{}/reset/{}, 链接有效时间为24小'.format(_ip, code)
+        email_body = '请点击下面的链接重置你的密码：{}/reset/{}, 链接有效时间为24小时'.format(_ip, code)
         send_status = send_mail(email_title, email_body, EMAIL_FROM, [email])
         if send_status:
             log.info("发送成功")
