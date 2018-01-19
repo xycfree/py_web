@@ -18,6 +18,8 @@ from django.conf import global_settings
 pymysql.install_as_MySQLdb()
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+sys.path.insert(0, BASE_DIR)
 sys.path.insert(0, os.path.join(BASE_DIR, 'apps'))
 
 # Quick-start development settings - unsuitable for production
@@ -119,6 +121,29 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
+
+# 设置需要全局设置。在配置文件里，定义REST_FRAMEWORK,设置DEFAULT_PAGINATION_CLASS和PAGE_SIZE。
+# 这样API会出现offset(开始位置)和limit(限制件数，default=PAGE_SIZE)等参数。
+REST_FRAMEWORK = {
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
+    'PAGE_SIZE': 5,
+
+    # 如果想通过author来筛选Entry时。
+    # 'DEFAULT_FILTER_BACKENDS': ('rest_framework.filters.DjangoFilterBackend',),
+}
+
+"""
+在配置文件里添加DEFAULT_FILTER_BACKENDS。和分页所设置的是同一个字典。
+class EntryViewSet(viewsets.ModelViewSet):
+    queryset = Entry.objects.all()
+    serializer_class = EntrySerializer
+    filter_fields = ('author', 'status')
+然后在ViewSet里设置filter_fields。这样就可以通过author和status来筛选。 
+API后面为?author=1，就会抽选User id=1的blog。?status=public会抽选已经公开的Blog 
+其他筛选方法参照 http://www.django-rest-framework.org/api-guide/filtering/
+"""
+
+
 
 
 # Internationalization

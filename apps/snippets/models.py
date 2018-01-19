@@ -2,7 +2,9 @@ from django.db import models
 
 # Create your models here.
 from django.db import models
-from pygments.lexers import get_all_lexers
+from pygments import highlight
+from pygments.formatters.html import HtmlFormatter
+from pygments.lexers import get_all_lexers, get_lexer_by_name
 from pygments.styles import get_all_styles
 
 LEXERS = [item for item in get_all_lexers() if item[1]]
@@ -18,5 +20,17 @@ class Snippet(models.Model):
     language = models.CharField(choices=LANGUAGE_CHOICES, default='python', max_length=100)
     style = models.CharField(choices=STYLE_CHOICES, default='friendly', max_length=100)
 
+    # owner = models.ForeignKey('auth.User', related_name='snippets')  # 存储创建者信息
+    # highlighted = models.TextField()  # 存储高亮HTML信息
+
     class Meta:
         ordering = ('created',)
+
+    # def save(self, *args, **kwargs):
+    #     """ 使用pygments创建高亮的HTML文本 """
+    #     lexer = get_lexer_by_name(self.language)
+    #     linenos = self.linenos and 'table' or False
+    #     options = self.title and {'title': self.title} or {}
+    #     formatter = HtmlFormatter(style=self.style, linenos=linenos, full=True, **options)
+    #     self.highlighted = highlight(self.code, lexer, formatter)
+    #     super(Snippet, self).save(*args, **kwargs)

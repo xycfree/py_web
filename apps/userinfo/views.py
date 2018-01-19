@@ -19,6 +19,7 @@ from django.views import View
 from django.views.decorators.csrf import csrf_protect, csrf_exempt
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from rest_framework import generics
 
 from common.mixin_utils import LoginRequiredMixin
 from common.send_email import send_register_email, Token
@@ -26,6 +27,7 @@ from userinfo.models import UserProfile, EmailVerifyRecord
 from common.conf import resp_code
 from common.utils import validate_email, validate_pass_len, MyJSONEncoder, http_response_return
 from py_web.settings import SECRET_KEY
+from userinfo.serializers import  UserProfileSerializer
 
 logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger(__file__)
@@ -339,3 +341,15 @@ def update_image(request):
 
 class UserInfoView(LoginRequiredMixin, View):
     pass
+
+
+
+# 用户
+class UserList(generics.ListAPIView):
+    queryset = UserProfile.objects.all()
+    serializer_class = UserProfileSerializer
+
+
+class UserDetail(generics.RetrieveAPIView):
+    queryset = UserProfile.objects.all()
+    serializer_class = UserProfileSerializer
