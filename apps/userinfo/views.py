@@ -19,7 +19,11 @@ from django.views import View
 from django.views.decorators.csrf import csrf_protect, csrf_exempt
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from rest_framework import generics
+from rest_framework import generics, viewsets
+from rest_framework.decorators import api_view
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from common.mixin_utils import LoginRequiredMixin
 from common.send_email import send_register_email, Token
@@ -27,7 +31,9 @@ from userinfo.models import UserProfile, EmailVerifyRecord
 from common.conf import resp_code
 from common.utils import validate_email, validate_pass_len, MyJSONEncoder, http_response_return
 from py_web.settings import SECRET_KEY
-from userinfo.serializers import  UserProfileSerializer
+from userinfo.serializers import UserProfileSerializer, UserRegisterSerializer
+from rest_framework import status
+
 
 logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger(__file__)
@@ -280,7 +286,9 @@ def modify_pwd(request):
 @login_required
 def center(request):
     """个人中心 """
+
     if request.method == 'GET':
+
         user = request.user
         try:
             users = UserProfile.objects.get(username=user)
@@ -343,7 +351,6 @@ class UserInfoView(LoginRequiredMixin, View):
     pass
 
 
-
 # 用户
 class UserList(generics.ListAPIView):
     queryset = UserProfile.objects.all()
@@ -351,5 +358,10 @@ class UserList(generics.ListAPIView):
 
 
 class UserDetail(generics.RetrieveAPIView):
+    queryset = UserProfile.objects.all()
+    serializer_class = UserProfileSerializer
+
+
+class UserViewSet(viewsets.ModelViewSet):
     queryset = UserProfile.objects.all()
     serializer_class = UserProfileSerializer

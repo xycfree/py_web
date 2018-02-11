@@ -5,13 +5,20 @@
 # @Descript:
 from rest_framework import serializers
 
+from blog.models import Article
 from userinfo.models import UserProfile
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
-    # userinfo = serializers.PrimaryKeyRelatedField(many=True, queryset=UserProfile.objects.all())
+    # blog_set = serializers.PrimaryKeyRelatedField(many=True, queryset=Article.objects.all())
 
     class Meta:
         model = UserProfile
-        fields = ('id','username', 'email', 'profile', 'address', 'phone', 'nickname', 'image', 'au',
-                  'topic_num', 'visit_num', 'comment_num', 'create_time', 'update_time')
+        fields = ('id', 'username', 'nickname', 'email', 'phone', 'address')  # get请求显示的字段
+
+
+class UserRegisterSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = UserProfile
+        fields = ('id', 'username', 'email')

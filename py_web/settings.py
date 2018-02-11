@@ -9,18 +9,34 @@ https://docs.djangoproject.com/en/1.10/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/1.10/ref/settings/
 """
-
+import logging
 import os
 import sys
+from datetime import datetime
+
 import pymysql
 from django.conf import global_settings
 
 pymysql.install_as_MySQLdb()
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# log_folder = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # 上级目录地址
+
+log_dir = os.path.join(BASE_DIR, 'logs')
+
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir)  # 判断路径是否存在，不存在则创建路径
+
+log_file = 'info-{}.log'.format(datetime.now().strftime('%Y-%m-%d'))  # 文件名
+# log_file = 'info.log'  # 文件名
+# log_err_file = 'error.log'  # 错误文件名
+log_err_file = 'error-{}.log'.format(datetime.now().strftime('%Y-%m-%d'))
+
 
 sys.path.insert(0, BASE_DIR)
 sys.path.insert(0, os.path.join(BASE_DIR, 'apps'))
+sys.path.insert(0, os.path.join(BASE_DIR, 'xadmin'))
+sys.path.insert(0, os.path.join(BASE_DIR, 'common'))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.10/howto/deployment/checklist/
@@ -30,9 +46,8 @@ SECRET_KEY = '$@-y$+y-d%=000f8abg@^-dryr2g71@rh!fj33skybabrkpar2'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-
 ALLOWED_HOSTS = []
-
+CSRF_COOKIE_SECURE = True
 # AUTH 方法（支持邮箱登录）
 AUTHENTICATION_BACKENDS = ('userinfo.views.CustomBackend',)
 
@@ -42,12 +57,13 @@ AUTH_USER_MODEL = 'userinfo.UserProfile'  # 自定义AbstractUser来实现登录
 # Application definition
 
 INSTALLED_APPS = [
-    'django.contrib.admin',
+    # 'django.contrib.admin',  # 有xadmin可以去掉
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'DjangoUeditor',  # 文章需要
     'userinfo',
     'xadmin',
     'crispy_forms',
@@ -55,17 +71,22 @@ INSTALLED_APPS = [
     'pure_pagination',
     'rest_framework',
     'snippets',
+    'blog',
+    'corsheaders',  # 白名单
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',  # 解决跨域
     'django.middleware.common.CommonMiddleware',
     # 'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+
 ]
+
 
 ROOT_URLCONF = 'py_web.urls'
 LOGIN_URL = '/login/'  # 这个路径需要根据你网站的实际登陆地址来设置
@@ -127,6 +148,7 @@ AUTH_PASSWORD_VALIDATORS = [
 REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
     'PAGE_SIZE': 5,
+    'DEFAULT_PERMISSION_CLASSES': ['rest_framework.permissions.AllowAny', ],
 
     # 如果想通过author来筛选Entry时。
     # 'DEFAULT_FILTER_BACKENDS': ('rest_framework.filters.DjangoFilterBackend',),
@@ -186,3 +208,105 @@ EMAIL_HOST_USER = 'xycfree@163.com'
 EMAIL_HOST_PASSWORD = 'bingpoli123'
 EMAIL_USE_TLS = False  # 一般都为False
 EMAIL_FROM = 'xycfree@163.com'
+
+
+# 跨域增加忽略
+CORS_ALLOW_CREDENTIALS = True
+CORS_ORIGIN_ALLOW_ALL = True
+CORS_ORIGIN_WHITELIST = (
+    '*'
+)
+
+CORS_ALLOW_METHODS = (
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+    'VIEW',
+)
+
+CORS_ALLOW_HEADERS = (
+    'XMLHttpRequest',
+    'X_FILENAME',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+    'Pragma',
+)
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "simple": {
+            'format': '%(asctime)s [%(name)s:%(lineno)d] [%(levelname)s]- %(message)s'
+        },
+        'standard': {
+            'format': '%(asctime)s [%(threadName)s:%(thread)d] [%(name)s:%(lineno)d] [%(levelname)s]- %(message)s'
+        },
+    },
+
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "level": "DEBUG",
+            "formatter": "standard",
+            "stream": "ext://sys.stdout"
+        },
+        'error': {
+            'level': 'ERROR',
+            'class': 'logging.handlers.RotatingFileHandler',
+            "formatter": "standard",
+            'filename': os.path.join(log_dir, log_err_file),
+            'mode': 'w+',
+            'maxBytes': 1024 * 1024 * 50,
+            'backupCount': 10,
+            "encoding": "utf8",
+        },
+
+        "default": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "level": "INFO",
+            "formatter": "standard",
+            "filename": os.path.join(log_dir, log_file),
+            'mode': 'w+',
+            "maxBytes": 1024 * 1024 * 50,  # 5 MB
+            "backupCount": 10,
+            "encoding": "utf8"
+        },
+        # 'celery': {
+        #     'level': 'DEBUG',
+        #     'class': 'logging.handlers.RotatingFileHandler',
+        #     'filename': os.path.join(log_dir, 'celery.log'),
+        #     'formatter': 'simple',
+        #     'maxBytes': 1024 * 1024 * 50,  # 100 mb
+        #     "backupCount": 10,
+        #     "encoding": "utf8"
+        # },
+    },
+
+    "loggers": {
+        "app_name": {
+            "level": "DEBUG",
+            "handlers": ["console"],
+            "propagate": "no"
+        }
+    },
+
+    "root": {
+        'handlers': ['default', 'console', 'error'],
+        'level': "DEBUG",
+        'propagate': False
+    }
+}
+
+import logging.config
+logging.config.dictConfig(LOGGING)
+log = logging.getLogger(__name__)

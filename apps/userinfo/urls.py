@@ -1,4 +1,7 @@
 # coding:utf-8
+from rest_framework import routers
+
+from userinfo.views import UserViewSet
 
 __author__ = 'xycfree'
 
@@ -7,6 +10,10 @@ from django.conf.urls import url, include
 from userinfo import views
 
 app_name = 'userinfo'
+
+# router = routers.DefaultRouter()
+# router.register('users', UserViewSet)
+
 
 urlpatterns = [
 
@@ -20,12 +27,13 @@ urlpatterns = [
     url(r'^center/$', views.center, name='center'),
     url(r'^user/modify/$', views.modify_user_info, name='modify_user'),
 
-
     url(r'user/image/$', views.update_image, name='updateimage'),
     url(r'^active/(?P<code>.*)/$', views.activate, name="user_active"),  # 提取出active后的所有字符赋给active_code
     url(r'^reset/(?P<code>.*)/$', views.reset_page, name="reset_page"),  # 提取出active后的所有字符赋给active_code
 
     url(r'^users/$', views.UserList.as_view()),
     url(r'^users/(?P<pk>[0-9]+)/$', views.UserDetail.as_view()),
+
+
 
 ]

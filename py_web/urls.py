@@ -13,23 +13,21 @@ Including another URLconf
     1. Import the include() function: from django.conf.urls import url, include
     2. Add a URL to urlpatterns:  url(r'^blog/', include('blog.urls'))
 """
-import patterns as patterns
-from django.conf.urls.static import static
+from django.conf.urls import url, include
+from django.contrib import admin
 from django.views.static import serve
 
 import xadmin
-from django.conf.urls import url, include
-from django.contrib import admin
-
 from py_web import settings
-from userinfo import urls as userinfo_urls
 
-admin.autodiscover()
+xadmin.autodiscover()
 urlpatterns = [
     url(r'', include('snippets.urls', namespace='snippets')),
-    url(r'^admin/', xadmin.site.urls),
     url(r'', include('userinfo.urls', namespace='userinfo')),
-    # url(r'^', include(userinfo_urls, namespace='userinfo')),
+    url(r'', include('blog.urls', namespace='blog')),
+    url(r'^ueditor/', include('DjangoUeditor.urls')),
+    url(r'^xadmin/', xadmin.site.urls),
+    url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
 ]
 
 # 全局 404 页面配置（django 会自动调用这个变量）
